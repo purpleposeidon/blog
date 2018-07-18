@@ -6,7 +6,7 @@ had trouble. Also me. It's been... pretty rough.
 This is because dylibs use malloc, but rlibs use jemalloc.
 Obviously the plugins and the main program need to be using the same allocator!
 We can indicate what allocator to use via
-[this thing](https://doc.rust-lang.org/unstable-book/library-features/alloc-system.html):
+[this thing](https://doc.rust-lang.org/unstable-book/language-features/global-allocator.html):
 
 ```rust
 extern crate some_allocator;
@@ -15,7 +15,7 @@ use some_allocator::SomeAllocator as Alloc;
 ALLOC: Alloc = Alloc;
 ```
 
-(If we want to use malloc aka `alloc_system`, we must use unstable's `#![feature(alloc_system)]`.)
+(If we want to use malloc aka [`alloc_system`](https://doc.rust-lang.org/unstable-book/library-features/alloc-system.html), we must use unstable's `#![feature(alloc_system)]`.)
 
 Basically nothing works.
 By this I mean that, maybe it works if you have a simple setup, but more complex ones do not.
