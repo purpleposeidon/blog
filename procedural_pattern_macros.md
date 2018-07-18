@@ -86,6 +86,7 @@ NO THANKS NOT FOR ME I HAVE NO DESIRE TO GET MY HANDS COVERED IN THE TURING TAR.
 Plus the errors suck.
 This approach gives you the best of both worlds: we have syntax matching;
 and we can write our macros in a very nice language we all know and love.
+
 Rust. That language is called Rust. Fantastic language. Not that I'm one to evangelize.
 The errors'll probably still suck by default,
 but the lack of tar will make them more like `vague` and less like `nightmarish tentacled monstrosity from La Brea`.
