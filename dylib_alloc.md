@@ -1,9 +1,21 @@
 # Getting working memory allocation in a plugin system
 
-The typical plugin architecture doesn't seem to work very well with Rust these days.
+Your typical plugin architecture looks like this.
+You've got a main program.
+It defines some items.
+And then you've got your plugins, dynamic libraries,
+and they use items defined in the main program to do their stuff.
+There's some benefits to this.
+If you're working on a plugin,
+you've only got to compile a teeny part of the project instead of the whole mess.
+And the efficiency of doing visual work is vastly improved if you can get immediate feedback,
+which you can do by hotswapping the library.
+
+
+But this doesn't seem to work very well with Rust these days.
 For example, [this person](https://reddit.com/r/rust/comments/8rh5al/segfaulting_when_using_a_dynamic_library/)'s
-had trouble. Also me. It's been... pretty rough.
-This is because dylibs use malloc, but rlibs use jemalloc.
+had trouble. Also me. It's been a rather *rough* past few coding sessions.
+The problem is that dylibs use malloc, but rlibs use jemalloc.
 Obviously the plugins and the main program need to be using the same allocator!
 We can indicate what allocator to use via
 [this thing](https://doc.rust-lang.org/unstable-book/language-features/global-allocator.html):
@@ -23,7 +35,7 @@ I don't know what "complex" actually means here,
 but it probably involves things like "plugin refers to items in main"
 and "you've actually somehow gotten jemalloc's code to run
 (because I still have no idea how to do this in an isolated environment;
-obvious things like 'give a `Vec` to a library to fiddle with & drop' don't work)".
+obvious things like 'give a `Vec` to a library to fiddle with' don't work)".
 
 
 So we need to use `#[global_allocator]` somehow to unify the allocators.
@@ -35,7 +47,7 @@ These are the immediate, obvious options:
 4. Tell everyone to use `alloc_system`, explicitly.
 
 3 & 4 will not work.
-There can be only one crate with `#[global_allocator]`.
+If a crate has the `#[global_allocator]`, then none of its dependencies can have it.
 1 will not work, because we get this error: "cannot allocate memory in static TLS block".
 I've been getting that error a lot, and so far it hasn't helped anything.
 Okay! So let's use solution #2.
@@ -45,7 +57,8 @@ It doesn't work. Jemalloc remains embedded in libstd. Oh no!
 But you are in luck, for I have come bearing solutions!
 
 Make main a dylib. Now everybody uses the same allocator by default.
-You'll just need the weeist li'l shim in `bin/`:
+
+You'll just need the weeist li'l shim program in `bin/`:
 ```rust
 extern crate app;
 fn main() { app::main() }
@@ -55,13 +68,13 @@ You'll have to specify `#[global_allocator]` using [the system allocator](https:
 even though obviously that shouldn't be necessary, since it's a dylib and dylibs use the system allocator.
 Since that's unstable, you'll have to be on [nightly](just_use_nightly.md).
 
-So in `Cargo.toml` you'll need to set the crate-type for your main library, something like:
+So in `Cargo.toml` you'll need to set the `crate-type` for your main library, something like:
 
 ```toml
 [lib]
 crate-type = ["dylib"]
 # Note that "cdylib" doesn't work; it must be a "dylib".
-# And of course your plugins should already have been ["dylib"].
+# And of course your plugins will all be ["dylib"].
 ```
 
-I don't understand why this works.
+I don't understand why this works. Not sure it actually does.
