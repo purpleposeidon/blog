@@ -53,7 +53,7 @@ extern crate app;
 fn main() { app::main() }
 ```
 
-You'll have to specify `#[global_allocator]` using [the system allocator](https://doc.rust-lang.org/unstable-book/library-features/alloc-system.html),
+You'll have to specify `#[global_allocator]` in your main lib using [the system allocator](https://doc.rust-lang.org/unstable-book/library-features/alloc-system.html),
 even though obviously that shouldn't be necessary, since it's a dylib and *we all know that* dylibs use the system allocator.
 Since that's unstable, you'll have to be on [nightly](just_use_nightly.md).
 
@@ -93,5 +93,11 @@ for f in $(find ./build/x86_64-unknown-linux-gnu/stage2 -type f); do strings $f 
 rustup toolchain link no-jemalloc ./build/x86_64-unknown-linux-gnu/stage2/
 ```
 
+# Summary
+1. `git clone https://github.com/rust-lang/rust/`
+2. In `config.toml`, set `use-jemalloc = false`
+3. `./x.py build` and take a nap.
+4. `rustup toolchain link no-jemalloc ./build/x86_64-unknown-linux-gnu/stage2/`
+5. Allocation should probably work now. (No `#[global_allocator]` required?)
 
 <a name="note1">1</a>: This means it's possible to segfault with safe Rust. Laaame. It also suggests that `Cargo.toml` deserves some of the scrutiny that `unsafe` gets.
