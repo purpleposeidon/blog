@@ -64,4 +64,29 @@ crate-type = ["dylib"]
 # And of course your plugins should already have been ["dylib"].
 ```
 
-It sort of works? It actually doesn't. Running Valgrind shows the occasional strange memory error, and gdb will happily tab-complete symbols like `je_arena_palloc`. Memory errors at least happen less often this way.
+It sort of works? It actually doesn't. Running Valgrind shows the occasional strange memory error, and gdb will happily tab-complete symbols like `je_arena_palloc`. At least the errors are happening *less often* now.
+
+Well, we want this to actually work. So where are those jemalloc symbols coming from? We can tell gdb to break whenever a library loads using `set stop-on-solib-events 1` (using `break dlopen` misses stuff). `run`ning first stops sometime during `_start`, and we can `c`ontinue and try tab-completing some `je_` symbol. We see that it's coming from libstd.so, and can also see this by running `objdump -CRrt $(dirname $(rustup which rustc))/../lib/libstd* | grep je_ | less`.
+
+So, we need a libstd without jemalloc?
+
+# Grab Your Razors, We're Goin' Yak Shavin'
+Let's try to build a libstd without reference to jemalloc.
+First we clone the [rust repo](http://github.com/rust-lang/rust/).
+We'll want our custom Rust to be otherwise identical to our nightly version; so we'll want to `git checkout` the commit shown in `rustc -vV`.
+
+So, do we have to take a hacksaw to the Rust sources? No! Fortunately there's a `config.toml` file with a `use-jemalloc` option. Let's set that to false. Rust is built with a python script called x.py. Running `x.py build` will build, and it'll also take something like an hour and a half. ...Yeah. (Maybe `x.py stage1` would be faster? But this is not what I did.)
+
+Eventually your CPU will stop imitating a jet engine and we can install the custom Rust. Let's first verify that jemalloc is properly sodded off to heck:
+
+```
+# Check libstd the same way we checked earlier.
+objdump -CRrt build/x86_64-unknown-linux-gnu/stage2/lib/libstd-*.so | grep je_
+
+# Check everything else; `strings` is more forgiving than `objdump`.
+# I saw a few unrelated strings.
+for f in $(find ./build/x86_64-unknown-linux-gnu/stage2 -type f); do strings $f | grep je_; done
+
+# Okay, now let's install. Don't go removing your rust-src directory, rustup symlinks into it.
+rustup toolchain link no-jemalloc ./build/x86_64-unknown-linux-gnu/stage2/
+```
