@@ -70,7 +70,7 @@ It sort of works? It actually doesn't. Running Valgrind shows the occasional str
 
 Well, we want this to actually work. So where are those jemalloc symbols coming from? We can tell gdb to break whenever a library loads using `set stop-on-solib-events 1` (using `break dlopen` misses stuff). `run`ning first stops sometime during `_start`, and from there we can `c`ontinue and try tab-completing some `je_` symbol. Once we find such a symbol, we'll see that it's coming from libstd.so, and we can also see by running `objdump -CRrt $(dirname $(rustup which rustc))/../lib/libstd* | grep je_ | less`.
 
-Oh, right. libstd still uses the default allocator. It's not like it gets recompiled whenever you change `#[global_allocator]`<sup><a href="#note1" name="#a1">1</a></sup>. So, we need a libstd without jemalloc?
+Oh, right. libstd still uses the default allocator. It's not like it gets recompiled whenever you change `#[global_allocator]`<sup><a href="#note1" name="note1back">1</a></sup>. So, we need a libstd without jemalloc?
 
 # Grab Your Razors, We're Goin' Yak Shavin'
 Let's try to build a libstd without reference to jemalloc.
@@ -100,4 +100,4 @@ rustup toolchain link no-jemalloc ./build/x86_64-unknown-linux-gnu/stage2/
 4. `rustup toolchain link no-jemalloc ./build/x86_64-unknown-linux-gnu/stage2/`
 5. Allocation should probably work now. (No `#[global_allocator]` required?)
 
-<a href="#a1" name="note1">1</a>: This means it's possible to segfault with safe Rust. Laaame. It also suggests that `Cargo.toml` deserves some of the scrutiny that `unsafe` gets.
+<a href="#note1back" name="note1">1</a>: This means it's possible to segfault with safe Rust. Laaame. It also suggests that `Cargo.toml` deserves some of the scrutiny that `unsafe` gets.
