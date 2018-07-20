@@ -100,4 +100,4 @@ rustup toolchain link no-jemalloc ./build/x86_64-unknown-linux-gnu/stage2/
 4. `rustup toolchain link no-jemalloc ./build/x86_64-unknown-linux-gnu/stage2/`
 5. Allocation should probably work now. (No `#[global_allocator]` required?)
 
-<a href="a1" name="note1">1</a>: This means it's possible to segfault with safe Rust. Laaame. It also suggests that `Cargo.toml` deserves some of the scrutiny that `unsafe` gets.
+<a href="#a1" name="note1">1</a>: This means it's possible to segfault with safe Rust. Laaame. It also suggests that `Cargo.toml` deserves some of the scrutiny that `unsafe` gets.
