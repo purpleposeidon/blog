@@ -42,7 +42,7 @@ Okay! So let's use solution #2.
 
 It doesn't work. Jemalloc remains embedded in libstd. Oh no!
 
-But you are in luck, for I have come bearing solutions!
+But you are in luck, for I have come bearing solutions! (Sorta.)
 
 Make main a dylib. Now everybody uses the same allocator by default.
 You'll just need the weeist li'l shim in `bin/`:
@@ -64,4 +64,4 @@ crate-type = ["dylib"]
 # And of course your plugins should already have been ["dylib"].
 ```
 
-I don't understand why this works.
+It sort of works? It actually doesn't. Running Valgrind shows the occasional strange memory error, and gdb will happily tab-complete symbols like `je_arena_palloc`. Memory errors at least happen less often this way.
