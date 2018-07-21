@@ -23,6 +23,7 @@ pub(::super) extern "rust" unsafe fn r#or_IS_it<I>(i: I) -> I {
 }
 ```
 You see this? Looks like a mess? I'd better not have to work hard to parse that.
+
 Let's see a possible implementation.
 
 ```rust
