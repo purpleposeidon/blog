@@ -141,4 +141,4 @@ Then installing the toolchain is simply:
 rustup toolchain link no-jemalloc-4bd4e4130 ./build/x86_64-unknown-linux-gnu/stage2/
 ```
 
-Either way, you can then do `rustup override set $NEW_TOOLCHAIN` in your project.
+Either way, you can then do `rustup override set $NEW_TOOLCHAIN` in your project, and you should have no further troubles with allocation.
