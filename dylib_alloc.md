@@ -80,14 +80,14 @@ Well, we want this to actually work. So where are those jemalloc symbols coming 
 
 Oh, right. `libstd` still uses the default allocator. It's not like it gets recompiled whenever you change `#[global_allocator]`. So, we need a libstd without jemalloc?
 
-# Yaks & Shaving Them
+# Yaks & The Art of Shaving Them
 Let's build our own `libstd` without reference jemalloc.
 
 First we clone [github:rust-lang/rust](https://github.com/rust-lang/rust/).
 
 ```
-$ git clone https://github.com/rust-lang/rust.git
-$ cd rust
+git clone https://github.com/rust-lang/rust.git
+cd rust
 ```
 
 We'll want our custom Rust to be otherwise the same as our nightly version. `rustup run nightly rustc --version` will show the commit it was built with; `git checkout` that commit.
@@ -112,8 +112,33 @@ objdump -CRrt build/x86_64-unknown-linux-gnu/stage2/lib/libstd-*.so | grep je_
 # Check everything else. Since `find` finds things `objdump` can't handle, use `strings` instead.
 # This may find some strings unrelated to jemalloc.
 for f in $(find ./build/x86_64-unknown-linux-gnu/stage2 -type f); do strings $f | grep je_; done
-
-# Okay, now let's install. Just don't go removing your rust-src directory; rustup symlinks into it.
-rustup toolchain link no-jemalloc ./build/x86_64-unknown-linux-gnu/stage2/
 ```
 
+Now we need to install it.
+
+```
+# We can create the toolchain manually.
+cd ~/.rustup/toolchains
+rustup run nightly rustc --version
+# rustc 1.31.0-nightly (4bd4e4130 2018-10-25)
+mkdir nightly-2018-10-25-no-jemalloc
+cd nightly-2018-10-25-no-jemalloc
+ln -s $(rustup run nightly rustc --print sysroot)/* .
+rm lib
+mkdir lib
+cd lib/
+ln -s $(rustup run nightly rustc --print sysroot)/lib/* .
+rm libstd-*.so 
+ln -s ~/rust/rust-src/build/x86_64-unknown-linux-gnu/stage2/lib/libstd-*.so ./
+```
+
+However it may be less hacky to just build rust fully, at the cost of an extra ~40 minutes.
+```
+./x.py build
+```
+Then installing the toolchain is simply:
+```
+rustup toolchain link no-jemalloc-4bd4e4130 ./build/x86_64-unknown-linux-gnu/stage2/
+```
+
+Either way, you can then do `rustup override set $NEW_TOOLCHAIN` in your project.
