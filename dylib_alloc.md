@@ -14,7 +14,7 @@ had trouble. Also me. It's been the source of some rather *rough* coding session
 The problem is that dylibs use malloc, but rlibs use jemalloc.
 Obviously the plugins and the main program need to be using the same allocator!
 We can indicate what allocator to use via
-[this thing](https://doc.rust-lang.org/unstable-book/language-features/global-allocator.html):
+[this thing](https://doc.rust-lang.org/1.27.0/unstable-book/language-features/global-allocator.html#global_allocator):
 
 ```rust
 extern crate some_allocator;
@@ -23,7 +23,7 @@ use some_allocator::SomeAllocator as Alloc;
 static ALLOC: Alloc = Alloc;
 ```
 
-(If we want to use malloc aka [`alloc_system`](https://doc.rust-lang.org/unstable-book/library-features/alloc-system.html), we must use unstable's `#![feature(alloc_system)]`.)
+(If we want to use malloc aka [`alloc_system`](https://doc.rust-lang.org/1.30.0/unstable-book/library-features/alloc-system.html), we must use unstable's `#![feature(alloc_system)]`.)
 
 Basically nothing works.
 By this I mean that, maybe it works if you have a simple setup, but more complex ones do not.
@@ -31,7 +31,7 @@ I don't know what "complex" actually means here,
 but it probably involves things like "plugin refers to items in main"
 and "you've actually somehow gotten jemalloc's code to run
 (because I still have no idea how to do this in an isolated environment;
-obvious things like 'give a `Vec` to a library to fiddle with' don't work)".
+obvious things like 'give a `Vec` to a plugin to fiddle with' don't work)".
 
 
 So we need to use `#[global_allocator]` somehow to unify the allocators.
@@ -52,7 +52,7 @@ It doesn't work. Jemalloc remains embedded in libstd. Oh no!
 
 But you are in luck, for I have come bearing solutions!
 
-Make main a dylib. Now everybody uses the same allocator by default.
+Make main a dylib.
 
 Now *everybody* uses the same allocator by default.
 You'll just need the weeist li'l shim in `bin/`:
@@ -78,9 +78,9 @@ It sort of works? It actually doesn't. Running Valgrind shows the occasional str
 
 Well, we want this to actually work. So where are those jemalloc symbols coming from? We can tell gdb to break whenever a library loads using `set stop-on-solib-events 1` (using `break dlopen` misses stuff). `run`ning first stops sometime during `_start`, and from there we can `c`ontinue and try tab-completing some `je_` symbol. Once we find such a symbol, we'll see that it's coming from libstd.so, and we can also see by running `objdump -CRrt $(dirname $(rustup which rustc))/../lib/libstd* | grep je_ | less`.
 
-Oh, right. libstd still uses the default allocator. It's not like it gets recompiled whenever you change `#[global_allocator]`. So, we need a libstd without jemalloc?
+Oh, right. `libstd` still uses the default allocator. It's not like it gets recompiled whenever you change `#[global_allocator]`. So, we need a libstd without jemalloc?
 
-# Grab Your Razors, We're Goin' Yak Shavin'
+# Yaks & Shaving Them
 Let's build our own `libstd` without reference jemalloc.
 
 First we clone [github:rust-lang/rust](https://github.com/rust-lang/rust/).
