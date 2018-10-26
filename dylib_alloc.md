@@ -117,5 +117,3 @@ for f in $(find ./build/x86_64-unknown-linux-gnu/stage2 -type f); do strings $f 
 rustup toolchain link no-jemalloc ./build/x86_64-unknown-linux-gnu/stage2/
 ```
 
-
-
