@@ -1,20 +1,16 @@
-# Getting working memory allocation in a plugin system
+# Fixing memory allocation when using a plugin system
 
-Your typical plugin architecture looks like this.
-You've got a main program.
-It defines some items.
-And then you've got your plugins, dynamic libraries,
-and they use items defined in the main program to do their stuff.
+Your typical plugin architecture looks like this. You've got a main program. It defines some items.
+And then you've got your plugins, dynamic libraries, and they use items defined in the main program to do their stuff.
 There's some benefits to this.
-If you're working on a plugin,
-you've only got to compile a teeny part of the project instead of the whole mess.
+If you're working on a plugin, you've only got to compile a teeny part of the project instead of the whole mess.
 And the efficiency of doing visual work is vastly improved if you can get immediate feedback,
 which you can do by hotswapping the library.
 
 
-But this doesn't seem to work very well with Rust these days.
+But this doesn't seem to work very well with Rust.
 For example, [this person](https://reddit.com/r/rust/comments/8rh5al/segfaulting_when_using_a_dynamic_library/)'s
-had trouble. Also me. It's been a rather *rough* past few coding sessions.
+had trouble. Also me. It's been the source of some rather *rough* coding sessions.
 The problem is that dylibs use malloc, but rlibs use jemalloc.
 Obviously the plugins and the main program need to be using the same allocator!
 We can indicate what allocator to use via
@@ -58,8 +54,6 @@ But you are in luck, for I have come bearing solutions!
 
 Make main a dylib. Now everybody uses the same allocator by default.
 
-You'll just need the weeist li'l shim program in `bin/`:
-
 Now *everybody* uses the same allocator by default.
 You'll just need the weeist li'l shim in `bin/`:
 ```rust
@@ -84,14 +78,30 @@ It sort of works? It actually doesn't. Running Valgrind shows the occasional str
 
 Well, we want this to actually work. So where are those jemalloc symbols coming from? We can tell gdb to break whenever a library loads using `set stop-on-solib-events 1` (using `break dlopen` misses stuff). `run`ning first stops sometime during `_start`, and from there we can `c`ontinue and try tab-completing some `je_` symbol. Once we find such a symbol, we'll see that it's coming from libstd.so, and we can also see by running `objdump -CRrt $(dirname $(rustup which rustc))/../lib/libstd* | grep je_ | less`.
 
-Oh, right. libstd still uses the default allocator. It's not like it gets recompiled whenever you change `#[global_allocator]`<sup><a href="#note1" name="note1back">1</a></sup>. So, we need a libstd without jemalloc?
+Oh, right. libstd still uses the default allocator. It's not like it gets recompiled whenever you change `#[global_allocator]`. So, we need a libstd without jemalloc?
 
 # Grab Your Razors, We're Goin' Yak Shavin'
-Let's try to build a libstd without reference to jemalloc.
-First we clone the [rust repo](https://github.com/rust-lang/rust/).
-We'll want our custom Rust to be otherwise the same as our nightly version. `rustc -vV` will show the commit it was built with; `git checkout` that commit.
+Let's build our own `libstd` without reference jemalloc.
 
-So, do we have to take a hacksaw to the Rust sources? No! There's a `config.toml` file with a `use-jemalloc` option. Let's uncomment and set it to false. Now, Rust is built with a python script called x.py. Running `x.py build` will build, and it'll also take something like an hour and a half. ...Yeah. (Maybe `x.py stage1` would be faster? But this is not what I did.)
+First we clone [github:rust-lang/rust](https://github.com/rust-lang/rust/).
+
+```
+$ git clone https://github.com/rust-lang/rust.git
+$ cd rust
+```
+
+We'll want our custom Rust to be otherwise the same as our nightly version. `rustup run nightly rustc --version` will show the commit it was built with; `git checkout` that commit.
+(This leaves weirdness with the submodules, but `x.py` seems to resolve them.)
+
+So, do we have to take a hacksaw to the Rust sources? No! There's a `config.toml` file with a `use-jemalloc` option.
+
+```
+cp config.toml.example config.toml
+```
+
+Then edit `config.toml`, changing the line `#use-jemalloc = true` into `use-jemalloc = false`
+
+Now, Rust is built with a python script called x.py. Running `x.py build libstd` will build, and it takes about an hour on my computer. ...Yeah.
 
 Eventually you'll come back from your nice walk. Your CPU will stop imitating a jet engine. We can install the custom Rust. Let's first verify that jemalloc is properly sodded off to heck:
 
@@ -100,18 +110,12 @@ Eventually you'll come back from your nice walk. Your CPU will stop imitating a 
 objdump -CRrt build/x86_64-unknown-linux-gnu/stage2/lib/libstd-*.so | grep je_
 
 # Check everything else. Since `find` finds things `objdump` can't handle, use `strings` instead.
-# I saw a few unrelated strings.
+# This may find some strings unrelated to jemalloc.
 for f in $(find ./build/x86_64-unknown-linux-gnu/stage2 -type f); do strings $f | grep je_; done
 
-# Okay, now let's install. Don't go removing your rust-src directory, rustup symlinks into it.
+# Okay, now let's install. Just don't go removing your rust-src directory; rustup symlinks into it.
 rustup toolchain link no-jemalloc ./build/x86_64-unknown-linux-gnu/stage2/
 ```
 
-# Summary
-1. `git clone https://github.com/rust-lang/rust/`
-2. In `config.toml`, set `use-jemalloc = false`
-3. `./x.py build` and take a nap.
-4. `rustup toolchain link no-jemalloc ./build/x86_64-unknown-linux-gnu/stage2/`
-5. Allocation should probably work now. (No `#[global_allocator]` required?)
 
-<a href="#note1back" name="note1">1</a>: This means it's possible to segfault with safe Rust. Laaame. It also suggests that `Cargo.toml` is `unsafe`.
+
