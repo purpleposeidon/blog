@@ -142,3 +142,4 @@ rustup toolchain link no-jemalloc-4bd4e4130 ./build/x86_64-unknown-linux-gnu/sta
 ```
 
 Either way, you can then do `rustup override set $NEW_TOOLCHAIN` in your project, and you should have no further troubles with allocation.
+By the way, this also allows you to use valgrind & rust.
