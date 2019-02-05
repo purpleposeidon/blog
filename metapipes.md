@@ -24,22 +24,27 @@ We know if we respect metapipes, but the other process may:
  - be on the other end of an SSH tunnel
 
 `metarespect()` manually introspecs the state of an end of a metapipe per this mode:
+
     'U': set 'unknown'
     'D': set 'disrespect'
     'R': set 'respect'
     '?': query near end state
     '|': query far end state
     NUL: error
+
 The return value is likewise.
 
 Various actions implicitly "mark respect" or "mark disrespect" to the metapipe.
 This decides the respect for an end of a metapipe in unknown state.
 
 IO on a metapipe marks respect on the local end.
+
 IO on a basepipe marks disrespect on the local end.
 
 IO on a metapipe returns EINVAL if either end is disrespected. `(_, 'D') | ('D', _)`
+
 IO on a metapipe would block if the other end has unknown respect. `('R', 'U')`
+
 IO on a metapipe can only move forward if both ends are respected. `('R', 'R')`
 
 # Tabular Output Protocol
